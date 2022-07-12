@@ -82,9 +82,29 @@
       - name: insert sample data into database
         mysql_db: name=ecomdb state=import target=/tmp/db-load-script.sql login_user="{{ master_user }}" login_password="{{ db_pass }}"
         become: yes
+        run_once: true
+      - name: Change DirectoryIndex index.html to DirectoryIndex index.php
+        command: sed -i 's/index.html/index.php/g' /etc/sed -i 's/index.html/index.php/g' /etc/apache2/apache2.conf
+        become: yes
+        notify: Restart apache2
+      - name: copy application code at /var/www/html/
+        copy: src=learning-app-ecommerce/ dest=/var/www/html/
+      - name: copying index file
+        template:
+          src: index.php
+          dest: /var/www/html/
+          owner: root
+          mode: 0600
+        become: yes
+        notify: Restart apache2
+
 
     handlers:
       - name: Restart MySQL
         service:
           name: mysql
+          state: restarted
+      - name: Restart apache2
+        service:
+          name: apache2
           state: restarted
