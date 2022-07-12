@@ -1,0 +1,90 @@
+---
+  - name: Installing required packages
+    hosts: all
+    become: yes
+    vars:
+      db_name: ecomdb
+      db_user: ecomuser
+      db_pass: ecompassword
+      master_user: root
+      create_database: true
+
+    tasks:
+      - name: upgrading default packages
+        command: sudo apt update -y
+      - name: Installing required packages
+        yum:
+          name: '{{item}}'
+          state: present
+        loop:
+          - mariadb-server
+          - httpd
+          - php
+          - php-mysql
+        when: ansible_facts['os_family'] == "RedHat"
+      - name: Installing required packages on Ubuntu
+        apt:
+          name: '{{item}}'
+          state: present
+        loop:
+          - mariadb-server
+          - apache2
+          - php
+          - php-mysql
+        when: ansible_facts['os_family'] == "Debian"
+      - name: Starting Installed packages
+        service:
+          name: apache2
+          state: started
+          enabled: true
+      - name: install python, pip etc
+        shell: apt -y install "{{ item }}"
+        with_items:
+          - pip
+          - python3-dev
+          - default-libmysqlclient-dev
+
+          - build-essential
+      - name: install dependencies(python, pip etc)
+        pip:
+          name: pymysql
+          state: present
+
+      - name: Start MySQL
+        service: name=mysqld state=started enabled=yes
+      - name: Create `/root/.my.cnf`  with root password credentials
+        template:
+          src:  my.cnf.j2
+          dest: /root/.my.cnf
+          owner: root
+          mode: 0600
+        become: yes
+        notify: Restart MySQL
+      - name: creating mysql user
+        mysql_user:
+          name: "{{ db_user }}"
+          login_host: localhost
+          login_user: "{{ master_user }}"
+          login_password: "{{ db_pass }}"
+          state: present
+        become: yes
+        notify: Restart MySQL
+
+      - name: Create database
+        mysql_db:
+          name: "{{ db_name }}"
+          state: present
+          login_user: "{{ master_user }}"
+          login_password: "{{ db_pass }}"
+          login_unix_socket: /var/run/mysqld/mysqld.sock
+      - name: add sample data to database
+        copy: src=db-load-script.sql dest=/tmp/db-load-script.sql owner=root mode=0600
+      - name: insert sample data into database
+        mysql_db: name=ecomdb state=import target=/tmp/db-load-script.sql login_user="{{ master_user }}" login_password="{{ db_pass }}"
+        become: yes
+
+    handlers:
+      - name: Restart MySQL
+        service:
+          name: mysql
+          state: restarted
