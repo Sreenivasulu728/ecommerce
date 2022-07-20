@@ -1,0 +1,6 @@
+---
+  - name: Installing required packages to setup Ecom App
+    hosts: all
+    become: yes
+    roles:
+      - ecom-webapp

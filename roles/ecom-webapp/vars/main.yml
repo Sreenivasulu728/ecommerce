@@ -1,0 +1,6 @@
+---
+# vars file for mysql
+db_name: ecomdb
+master_user: root
+mysql_root_password: ecompasswrd
+create_database: true
