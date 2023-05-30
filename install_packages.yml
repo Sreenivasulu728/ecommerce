@@ -70,7 +70,8 @@
           login_password: "{{ mysql_root_password }}"
           check_implicit_admin: yes
           priv: "*.*:ALL,GRANT"
-          login_unix_socket: /var/run/mysqld/mysqld.sock
+          ## The login_unix_socket parameter specifies the path to the MySQL Unix socket, allowing Ansible to connect to MySQL using the Unix socket instead of the default TCP connection.##
+          login_unix_socket: /var/run/mysqld/mysqld.sock   
         with_items:
           - "{{ ansible_hostname }}"
           - 127.0.0.1
